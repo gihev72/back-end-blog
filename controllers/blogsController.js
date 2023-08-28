@@ -1,4 +1,6 @@
 const Blog = require("../model/Blog");
+const containerClient = require("../config/azureBlob");
+const { v1: uuidv1 } = require("uuid");
 
 const getAllBlogs = async (req, res) => {
   const blogs = await Blog.find();
@@ -9,15 +11,40 @@ const getAllBlogs = async (req, res) => {
 // handle adding new blog
 const addBlog = async (req, res) => {
   const { title, blog } = req.body;
+  const { image } = req.files;
 
-  if (!title || !blog)
+  if (!title || !blog) {
+    // console.log(req.files);
     return res.status(400).json({ message: "title and bolg required" });
+  }
 
   try {
+    let url = "";
+    if (image) {
+      const mimetype = image.mimetype;
+      const spl = mimetype.split("/");
+      const imageName = uuidv1() + `.${spl[1]}`;
+      console.log(imageName, "image name will be hre!!!");
+      const blockBlobClient = containerClient.getBlockBlobClient(imageName);
+      url = blockBlobClient.url;
+      const data = image.data;
+      const uploadBlobResponse = await blockBlobClient.upload(
+        data,
+        data.length
+      );
+
+      console.log(
+        `Blob was uploaded successfully. requestId: ${uploadBlobResponse.requestId}`
+      );
+    } else {
+    }
+
+    // console.log(image, "file from form");
     const result = await Blog.create({
       title: title,
       description: blog,
       createdAt: Date.now(),
+      image: url,
     });
 
     console.log(result);
@@ -25,7 +52,8 @@ const addBlog = async (req, res) => {
       .status(201)
       .json({ messaeg: `new Blog with title of ${result.title} created!` });
   } catch (error) {
-    res.status(500).json({ message: err.message });
+    console.log(error);
+    res.status(500).json({ message: error.message });
   }
 };
 

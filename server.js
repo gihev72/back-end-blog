@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const fileUpload = require("express-fileupload");
 const app = express();
 const path = require("path");
 const cors = require("cors");
@@ -30,8 +31,12 @@ app.use("/register", require("./routes/register"));
 app.use("/login", require("./routes/auth"));
 app.use("/refresh", require("./routes/refresh"));
 app.use("/logout", require("./routes/logout"));
-app.use(verifyJWT);
-app.use("/blogs", require("./routes/blogs"));
+// app.use(verifyJWT);
+app.use(
+  "/blogs",
+  fileUpload({ createParentPath: true }),
+  require("./routes/blogs")
+);
 
 mongoose.connection.once("open", () => {
   console.log("Connected to MongoDB");
